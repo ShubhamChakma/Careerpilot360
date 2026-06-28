@@ -1,4 +1,6 @@
 import admin from 'firebase-admin';
+import fs from 'fs';
+import path from 'path';
 import env from './env.js';
 
 let app = null;
@@ -97,35 +99,51 @@ const mockAuth = {
   }
 };
 
-// Check if credentials are complete
-const hasFirebaseCredentials = 
-  env.FIREBASE.projectId && 
-  env.FIREBASE.clientEmail && 
-  env.FIREBASE.privateKey;
+// Auto-detect service account JSON file in root or server directory
+const possibleJsonFiles = [
+  path.resolve(process.cwd(), '../careerpilot-9cac6-firebase-adminsdk-fbsvc-e6d708f22a.json'),
+  path.resolve(process.cwd(), './careerpilot-9cac6-firebase-adminsdk-fbsvc-e6d708f22a.json')
+];
 
-if (hasFirebaseCredentials) {
-  try {
+let serviceAccountFile = possibleJsonFiles.find(filePath => fs.existsSync(filePath));
+
+try {
+  if (serviceAccountFile) {
+    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountFile, 'utf8'));
+    app = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    db = admin.firestore();
+    auth = admin.auth();
+    console.log(`🔥 Firebase Admin SDK initialized successfully via local key file (${path.basename(serviceAccountFile)}).`);
+  } else if (env.FIREBASE.projectId && env.FIREBASE.clientEmail && env.FIREBASE.privateKey) {
+    let formattedKey = env.FIREBASE.privateKey.trim();
+    if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
+      formattedKey = formattedKey.substring(1, formattedKey.length - 1);
+    }
+    formattedKey = formattedKey.replace(/\\n/g, '\n');
+
     app = admin.initializeApp({
       credential: admin.credential.cert({
         projectId: env.FIREBASE.projectId,
         clientEmail: env.FIREBASE.clientEmail,
-        privateKey: env.FIREBASE.privateKey,
+        privateKey: formattedKey,
       })
     });
     db = admin.firestore();
     auth = admin.auth();
-    console.log('🔥 Firebase Admin SDK initialized successfully.');
-  } catch (error) {
-    console.error('❌ Failed to initialize Firebase Admin SDK. Falling back to Mock mode.', error.message);
+    console.log('🔥 Firebase Admin SDK initialized successfully via Environment Variables.');
+  } else {
     isMock = true;
     db = new MockFirestore();
     auth = mockAuth;
+    console.log('🤖 Firebase is running in in-memory Mock Mode.');
   }
-} else {
+} catch (error) {
+  console.error('❌ Failed to initialize Firebase Admin SDK. Falling back to Mock mode.', error.message);
   isMock = true;
   db = new MockFirestore();
   auth = mockAuth;
-  console.log('🤖 Firebase is running in in-memory Mock Mode.');
 }
 
 export { admin, db, auth, isMock };
