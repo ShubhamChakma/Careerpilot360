@@ -8,7 +8,7 @@ const STARTER = {
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 
 export function makeQuestion(topic, index, title, description, samples, hidden) {
-  const slug = `${topic}-${index + 1}`;
+  const slug = title.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
   return {
     id: slug,
     slug,

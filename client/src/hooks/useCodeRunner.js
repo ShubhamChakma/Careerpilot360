@@ -25,39 +25,26 @@ export function useCodeRunner() {
     cleanPoll();
 
     try {
-      const { data } = await api.post('/api/compile', {
+      const { data } = await api.post('/compile', {
         language,
         code,
         questionId,
         mode,
       });
 
-      if (data.async && data.jobId) {
-        const jobId = data.jobId;
-        pollIntervalRef.current = setInterval(async () => {
-          try {
-            const res = await api.get(`/api/compile/${jobId}`);
-            if (res.data.status === 'completed') {
-              cleanPoll();
-              setOutput(res.data);
-              setLoading(false);
-            } else if (res.data.status === 'failed') {
-              cleanPoll();
-              setError(res.data.error || 'Job execution failed');
-              setLoading(false);
-            }
-          } catch (pollErr) {
-            cleanPoll();
-            setError(pollErr.response?.data?.message || pollErr.message || 'Error polling compile job');
-            setLoading(false);
-          }
-        }, 1000);
+      // Compiler_Server returns synchronous response — no polling needed
+      if (data.success === false) {
+        setError(data.error?.message || data.message || 'Compilation failed');
       } else {
         setOutput(data);
-        setLoading(false);
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Compilation failed');
+      const msg = err.response?.data?.error?.message
+        || err.response?.data?.message
+        || err.message
+        || 'Compilation failed';
+      setError(msg);
+    } finally {
       setLoading(false);
     }
   }, []);

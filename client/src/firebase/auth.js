@@ -7,6 +7,8 @@ import {
   signOut,
 } from 'firebase/auth';
 
+import { useAuthStore } from '../store/authStore';
+
 export const registerWithEmail = (email, password) =>
   createUserWithEmailAndPassword(auth, email, password);
 
@@ -18,5 +20,13 @@ export const loginWithGoogle = () =>
 
 export const logout = () => signOut(auth);
 
-export const getCurrentUserToken = () =>
-  auth?.currentUser ? auth.currentUser.getIdToken() : null;
+export const getCurrentUserToken = () => {
+  if (auth?.currentUser) {
+    return auth.currentUser.getIdToken();
+  }
+  // Return dev-token fallback for Demo Login or local development
+  if (useAuthStore.getState().user) {
+    return 'dev-token';
+  }
+  return null;
+};

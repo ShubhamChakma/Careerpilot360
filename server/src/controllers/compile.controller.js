@@ -1,76 +1,88 @@
-import { compileQueue } from '../services/queue.service.js';
+import env from '../config/env.js';
+
+const COMPILER_URL = env.COMPILER_SERVER_URL || 'http://localhost:3000';
 
 /**
- * Submits a new compilation job to the task queue.
+ * Proxies a compile/run request to the Compiler_Server.
  * POST /api/compile
+ * Body: { code, language, questionId, mode }
  */
 export async function submitCode(req, res, next) {
   try {
-    const { code, language, testCases } = req.body;
+    const { code, language, questionId, mode } = req.body;
 
     if (!code) {
-      return res.status(400).json({ 
-        success: false, 
-        error: { message: 'Code snippet is required for compilation.' } 
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Code snippet is required for compilation.' }
       });
     }
 
     if (!language) {
-      return res.status(400).json({ 
-        success: false, 
-        error: { message: 'Language selection (e.g. javascript, python) is required.' } 
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Language selection (cpp, c, java, python) is required.' }
       });
     }
 
-    // Default to at least one empty testcase if none are provided
-    const cases = testCases && Array.isArray(testCases) ? testCases : [{ id: 'default', input: '', expectedOutput: '' }];
+    if (!questionId) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'questionId (problem slug) is required.' }
+      });
+    }
 
-    const jobId = await compileQueue.addJob({ 
-      code, 
-      language, 
-      testCases: cases 
+    const endpoint = mode === 'submit' ? '/submit' : '/run';
+    const authHeader = req.headers.authorization || '';
+
+    console.log(`[proxy] Forwarding compile request to ${COMPILER_URL}${endpoint} for question: ${questionId}`);
+
+    const compilerRes = await fetch(`${COMPILER_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: JSON.stringify({
+        problemId: questionId,
+        code,
+        language,
+      }),
     });
 
-    res.status(202).json({
-      success: true,
-      data: {
-        jobId,
-        status: 'queued'
-      }
+    const contentType = compilerRes.headers.get('content-type') || '';
+    let data;
+    if (contentType.includes('application/json')) {
+      data = await compilerRes.json();
+    } else {
+      const text = await compilerRes.text();
+      data = { success: false, message: text || 'Non-JSON response received from compiler server.' };
+    }
+
+    return res.status(compilerRes.status).json({
+      success: compilerRes.ok,
+      ...data,
     });
+
   } catch (error) {
-    next(error);
+    console.error('[proxy] Error forwarding request to compiler:', error.message);
+    return res.status(503).json({
+      success: false,
+      error: { message: `Compiler service is unavailable: ${error.message}` }
+    });
   }
 }
 
 /**
- * Polls the job status and gets the execution result.
- * GET /api/compile/:jobId
+ * Health-check passthrough to the compiler server.
+ * GET /api/compile/health
  */
-export async function getJobStatus(req, res, next) {
+export async function compilerHealth(req, res, next) {
   try {
-    const { jobId } = req.params;
-    const job = await compileQueue.getJob(jobId);
-
-    if (!job) {
-      return res.status(404).json({ 
-        success: false, 
-        error: { message: 'Compilation job not found.' } 
-      });
-    }
-
-    res.json({
-      success: true,
-      data: {
-        id: job.id,
-        status: job.status,
-        result: job.result,
-        error: job.error,
-        createdAt: job.createdAt,
-        completedAt: job.completedAt
-      }
-    });
+    const compilerRes = await fetch(`${COMPILER_URL}/health`);
+    const data = await compilerRes.json();
+    return res.status(compilerRes.status).json(data);
   } catch (error) {
-    next(error);
+    return res.status(503).json({ status: 'DOWN', message: `Compiler_Server unreachable: ${error.message}` });
   }
 }

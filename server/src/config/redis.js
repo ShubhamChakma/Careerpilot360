@@ -37,10 +37,11 @@ class MockRedisClient {
 }
 
 try {
+  const isUpstash = env.REDIS_URL.includes('upstash.io') || env.REDIS_URL.startsWith('rediss://');
   redisClient = createClient({
     url: env.REDIS_URL,
     socket: {
-      // Return false to fail connection immediately if Redis is offline
+      tls: isUpstash ? true : undefined,
       reconnectStrategy: false
     }
   });
