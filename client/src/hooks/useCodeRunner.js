@@ -32,11 +32,6 @@ export function useCodeRunner() {
         mode,
       });
 
-<<<<<<< Updated upstream
-      // Compiler_Server returns synchronous response — no polling needed
-      if (data.success === false) {
-        setError(data.error?.message || data.message || 'Compilation failed');
-=======
       if (data.async && data.jobId) {
         const jobId = data.jobId;
         pollIntervalRef.current = setInterval(async () => {
@@ -57,7 +52,6 @@ export function useCodeRunner() {
             setLoading(false);
           }
         }, 1000);
->>>>>>> Stashed changes
       } else {
         setOutput(data);
       }
