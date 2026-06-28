@@ -14,60 +14,183 @@ import interviewRoutes from './routes/interview.routes.js';
 import jobPredictRoutes from './routes/jobPredict.routes.js';
 import resumeRoutes from './routes/resume.routes.js';
 
+
 const app = express();
 
-// Standard middlewares
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Server status endpoint
+// ===============================
+// CORS CONFIGURATION
+// ===============================
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  env.CLIENT_URL
+].filter(Boolean);
+
+
+app.use(
+  cors({
+
+    origin: (origin, callback) => {
+
+      // allow server-to-server requests / Postman
+      if (!origin) {
+        return callback(null, true);
+      }
+
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+
+      return callback(
+        new Error("Blocked by CORS policy")
+      );
+
+    },
+
+    credentials: true
+
+  })
+);
+
+
+
+// ===============================
+// Standard middlewares
+// ===============================
+
+app.use(express.json());
+
+app.use(
+  express.urlencoded({
+    extended: true
+  })
+);
+
+
+
+// ===============================
+// Health endpoints
+// ===============================
+
 app.get('/api/health', (req, res) => {
+
   res.json({
+
     success: true,
-    message: 'Careerpilot360 backend service is online.',
-    timestamp: new Date().toISOString(),
-    environment: env.NODE_ENV
+
+    message:
+      'Careerpilot360 backend service is online.',
+
+    timestamp:
+      new Date().toISOString(),
+
+    environment:
+      env.NODE_ENV
+
   });
+
 });
+
+
 
 app.get('/api/health/test', async (req, res) => {
+
   const result = await runSanityCheck();
-  res.status(result.success ? 200 : 500).json({
-    success: result.success,
-    data: result
-  });
+
+
+  res
+    .status(result.success ? 200 : 500)
+    .json({
+
+      success: result.success,
+
+      data: result
+
+    });
+
 });
 
-// Wire up API endpoints
+
+
+// ===============================
+// API Routes
+// ===============================
+
 app.use('/api/ai', aiRoutes);
-app.use('/api/chat-sessions', chatSessionRoutes);
+
+app.use(
+  '/api/chat-sessions',
+  chatSessionRoutes
+);
+
 app.use('/api/compile', compileRoutes);
+
 app.use('/api/docs', docsRoutes);
+
 app.use('/api/interview', interviewRoutes);
+
 app.use('/api/job-predict', jobPredictRoutes);
+
 app.use('/api/resume', resumeRoutes);
 
-// Fallback 404 route handler
-app.use((req, res, next) => {
+
+
+// ===============================
+// 404 Handler
+// ===============================
+
+app.use((req, res) => {
+
   res.status(404).json({
-    success: false,
-    error: {
-      message: `Resource not found: ${req.method} ${req.originalUrl}`,
-      statusCode: 404
+
+    success:false,
+
+    error:{
+
+      message:
+        `Resource not found: ${req.method} ${req.originalUrl}`,
+
+      statusCode:404
+
     }
+
   });
+
 });
 
-// Error handling middleware (MUST be final)
+
+
+// ===============================
+// Error Handler
+// ===============================
+
 app.use(errorHandler);
 
-// Start background task processing
+
+
+// ===============================
+// Background workers
+// ===============================
+
 startCompilerWorker();
 
-// Bind port and start
+
+
+// ===============================
+// Start Server
+// ===============================
+
 app.listen(env.PORT, () => {
-  console.log(`🚀 Careerpilot360 Server listening on port ${env.PORT} in ${env.NODE_ENV} mode.`);
+
+  console.log(
+    `🚀 Careerpilot360 Server listening on port ${env.PORT} in ${env.NODE_ENV} mode.`
+  );
+
 });
+
 
 export default app;
