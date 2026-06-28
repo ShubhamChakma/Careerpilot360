@@ -29,7 +29,7 @@ export function useJobPredict() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.post('/api/predict-roles');
+      const { data } = await api.post('/job-predict');
       setPrediction(data);
       if (user?.uid) await saveJobPrediction(user.uid, data);
       return data;

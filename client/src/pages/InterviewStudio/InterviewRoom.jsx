@@ -27,7 +27,7 @@ export default function InterviewRoom() {
 
   useEffect(() => {
     fetchResume();
-    api.get('/api/interview/templates')
+    api.get('/interview/templates')
       .then((res) => {
         setTemplates(res.data.templates || []);
         if (res.data.templates?.length > 0) {
@@ -40,7 +40,7 @@ export default function InterviewRoom() {
   const startInterview = async () => {
     setLoading(true);
     try {
-      const res = await api.post('/api/interview/start', { templateId: selectedTemplateId || 'frontend-general' });
+      const res = await api.post('/interview/start', { templateId: selectedTemplateId || 'frontend-general' });
       setSessionId(res.data.sessionId);
       setMessages([{ role: 'assistant', content: res.data.message || res.data.firstMessage }]);
       setStarted(true);
@@ -55,7 +55,7 @@ export default function InterviewRoom() {
     setMessages((m) => [...m, { role: 'user', content: text }]);
     setLoading(true);
     try {
-      const res = await api.post('/api/interview/message', { sessionId, message: text });
+      const res = await api.post('/interview/message', { sessionId, message: text });
       setMessages((m) => [...m, { role: 'assistant', content: res.data.message || res.data.reply }]);
     } finally {
       setLoading(false);
@@ -66,7 +66,7 @@ export default function InterviewRoom() {
     setLoading(true);
     try {
       const elapsed = startTimeRef.current ? Math.floor((Date.now() - startTimeRef.current) / 1000) : 0;
-      const res = await api.post('/api/interview/save', { sessionId, elapsedSeconds: elapsed });
+      const res = await api.post('/interview/save', { sessionId, elapsedSeconds: elapsed });
       setFeedback(res.data.score);
       setStarted(false);
       setMessages([]);

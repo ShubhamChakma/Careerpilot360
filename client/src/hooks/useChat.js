@@ -36,7 +36,7 @@ export function useChat(sessionId) {
       setLoading(true);
 
       try {
-        const { data } = await api.post('/api/ai/chat', {
+        const { data } = await api.post('/ai/chat', {
           messages: updated,
           sessionId,
         });
@@ -61,7 +61,7 @@ export function useChat(sessionId) {
   );
 
   const createNewSession = useCallback(async () => {
-    const { data } = await api.post('/api/chat-sessions', { title: 'New Chat' });
+    const { data } = await api.post('/chat-sessions', { title: 'New Chat' });
     setMessages([]);
     return data.id;
   }, []);

@@ -44,8 +44,8 @@ export async function scanResume(req, res, next) {
 
     let docId = null;
     try {
-      const docRef = await db.collection('resumes').add(record);
-      docId = docRef.id;
+      await db.collection('resumes').doc(userId).set(record);
+      docId = userId;
     } catch (dbErr) {
       console.warn('⚠️ Could not save resume record to Firestore:', dbErr.message);
     }

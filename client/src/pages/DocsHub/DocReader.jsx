@@ -13,7 +13,7 @@ export default function DocReader() {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await api.get(`/api/docs/${slug}`);
+        const res = await api.get(`/docs/${slug}`);
         setContent(res.data.content);
       } catch { setContent('Failed to load content. Please try again.'); }
       finally { setLoading(false); }

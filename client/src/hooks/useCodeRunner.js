@@ -32,9 +32,32 @@ export function useCodeRunner() {
         mode,
       });
 
+<<<<<<< Updated upstream
       // Compiler_Server returns synchronous response — no polling needed
       if (data.success === false) {
         setError(data.error?.message || data.message || 'Compilation failed');
+=======
+      if (data.async && data.jobId) {
+        const jobId = data.jobId;
+        pollIntervalRef.current = setInterval(async () => {
+          try {
+            const res = await api.get(`/compile/${jobId}`);
+            if (res.data.status === 'completed') {
+              cleanPoll();
+              setOutput(res.data);
+              setLoading(false);
+            } else if (res.data.status === 'failed') {
+              cleanPoll();
+              setError(res.data.error || 'Job execution failed');
+              setLoading(false);
+            }
+          } catch (pollErr) {
+            cleanPoll();
+            setError(pollErr.response?.data?.message || pollErr.message || 'Error polling compile job');
+            setLoading(false);
+          }
+        }, 1000);
+>>>>>>> Stashed changes
       } else {
         setOutput(data);
       }

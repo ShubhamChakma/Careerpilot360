@@ -16,14 +16,13 @@ export async function analyzeResume(resumeText, jobDescription) {
 
   const systemPrompt = `
     You are an expert ATS (Applicant Tracking System) scanner and professional resume reviewer.
-    Compare the resume text with the job description and output a JSON response containing:
-    - score (number, 0-100: general resume layout, metrics, structure quality)
-    - matchPercentage (number, 0-100: alignment with the job description)
-    - feedback (string: detailed review summary)
-    - strengths (array of strings: match-points and skills highlighted well)
-    - weaknesses (array of strings: gaps, missing keywords, formatting errors)
-    - improvements (array of objects: each has 'section' and 'suggestion' explaining how to fix the gaps)
-    - parsedSkills (array of strings: skills found in the resume)
+    Compare the resume text with the job description and output a JSON response containing EXACTLY these fields:
+    - overall (number, 0-100: overall ATS compatibility score combining layout, keywords, and structure)
+    - breakdown (object with exactly these numeric keys, each scored 0-100: keywords, formatting, experience, skills, education)
+    - matchedKeywords (array of strings: key terms from the job description that are found in the resume)
+    - missingKeywords (array of strings: important keywords from the job description that are missing from the resume)
+    - suggestions (array of strings: specific, actionable improvements the candidate can make to increase the ATS score)
+    - feedback (string: concise overall assessment summary in 2-3 sentences)
     
     Ensure your response is valid JSON and only contains the requested fields.
   `;

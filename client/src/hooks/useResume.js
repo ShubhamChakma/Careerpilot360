@@ -12,53 +12,49 @@ export function useResume() {
 
   const fetchResume = useCallback(async () => {
     if (!user?.uid) return;
-    const data = await getResume(user.uid);
-    setResume(data);
-    if (data?.atsScore) {
-      setAtsResult({
-        overall: data.atsScore,
-        breakdown: data.atsBreakdown,
-        suggestions: data.suggestions || [],
-      });
+    try {
+      const data = await getResume(user.uid);
+      setResume(data);
+      // Resume doc now stores the ATS report under the `report` key
+      if (data?.report) {
+        setAtsResult(data.report);
+      }
+    } catch (err) {
+      // Silently swallow — user may have no resume yet, or Firestore rules may restrict access
+      console.warn('[useResume] fetchResume failed:', err.message);
     }
   }, [user?.uid]);
 
-  const upload = useCallback(
-    async (file) => {
-      setLoading(true);
-      setError(null);
-      const formData = new FormData();
-      formData.append('resume', file);
-      try {
-        const { data } = await api.post('/api/resume/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        setResume(data);
-        return data;
-      } catch (err) {
-        setError(err.response?.data?.message || 'Upload failed');
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  const scan = useCallback(async () => {
+  /**
+   * Uploads a resume file and runs the ATS scan in a single request.
+   * @param {File} file - The PDF/DOCX/TXT resume file
+   * @param {string} jobDescription - The target job description to compare against
+   */
+  const scanResume = useCallback(async (file, jobDescription) => {
     setLoading(true);
     setError(null);
+    const formData = new FormData();
+    formData.append('resume', file);
+    formData.append('jobDescription', jobDescription);
     try {
-      const { data } = await api.post('/api/resume/scan');
-      setAtsResult(data);
-      return data;
+      const { data } = await api.post('/resume/scan', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const report = data.data?.report;
+      setResume(data.data);
+      setAtsResult(report);
+      return report;
     } catch (err) {
-      setError(err.response?.data?.message || 'Scan failed');
+      const msg =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        'Scan failed. Please try again.';
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  return { resume, atsResult, loading, error, upload, scan, fetchResume };
+  return { resume, atsResult, loading, error, scanResume, fetchResume };
 }
