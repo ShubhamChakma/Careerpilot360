@@ -1,0 +1,35 @@
+name: Deploy Backend (Server)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'server/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-backend:
+    name: Build & Verify Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd server
+          npm ci
+
+      - name: Docker Build Test
+        run: |
+          cd server
+          docker build -t careerpilot-backend:latest .
