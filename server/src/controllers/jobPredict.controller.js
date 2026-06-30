@@ -8,30 +8,16 @@ import { db } from '../config/firebase.js';
 export async function predictFit(req, res, next) {
   try {
     const userId = req.user.uid;
-    const { resumeText, targetRole } = req.body;
-
-    if (!targetRole) {
-      return res.status(400).json({ 
-        success: false, 
-        error: { message: 'Target role is required to run the job fit predictor.' } 
-      });
-    }
+    const { resumeText } = req.body || {};
 
     let textToAnalyze = resumeText;
 
-    // If resumeText is not directly provided in the request body,
-    // query the database to find the user's most recently uploaded resume.
+    // Query database to find the user's most recently uploaded resume.
     if (!textToAnalyze) {
       try {
-        const snapshot = await db.collection('resumes')
-          .where('userId', '==', userId)
-          .get();
-
-        if (snapshot.docs.length > 0) {
-          const resumesList = snapshot.docs.map(doc => doc.data());
-          // Sort by upload date descending
-          resumesList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-          textToAnalyze = resumesList[0].resumeText;
+        const doc = await db.collection('resumes').doc(userId).get();
+        if (doc.exists) {
+          textToAnalyze = doc.data().resumeText || '';
         }
       } catch (dbErr) {
         console.warn('⚠️ Firestore query for resumes failed in jobPredict:', dbErr.message);
@@ -41,11 +27,11 @@ export async function predictFit(req, res, next) {
     if (!textToAnalyze) {
       return res.status(400).json({ 
         success: false, 
-        error: { message: 'No resume text provided. Please upload a resume or pass raw text.' } 
+        error: { message: 'Please upload a resume in the ATS Scanner first to run job predictions.' } 
       });
     }
 
-    const predictionReport = await predictJobFit(textToAnalyze, targetRole);
+    const predictionReport = await predictJobFit(textToAnalyze);
 
     res.json({
       success: true,
