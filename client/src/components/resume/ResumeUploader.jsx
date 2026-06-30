@@ -5,7 +5,18 @@ export default function ResumeUploader({ file, setFile, dragging, setDragging, i
     e.preventDefault();
     setDragging(false);
     const f = e.dataTransfer.files[0];
-    if (f?.type === 'application/pdf') setFile(f);
+    if (!f) return;
+    const lowerName = f.name.toLowerCase();
+    if (
+      f.type === 'application/pdf' ||
+      f.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      f.type === 'application/msword' ||
+      lowerName.endsWith('.pdf') ||
+      lowerName.endsWith('.docx') ||
+      lowerName.endsWith('.doc')
+    ) {
+      setFile(f);
+    }
   };
 
   return (
@@ -41,14 +52,17 @@ export default function ResumeUploader({ file, setFile, dragging, setDragging, i
         <>
           <p className="text-2xl mb-3">📎</p>
           <p className={`text-sm font-medium mb-1 ${isDark ? 'text-[#A8A8A8]' : 'text-[#555]'}`}>Drop your resume here</p>
-          <p className={`text-xs ${isDark ? 'text-[#4A4A4A]' : 'text-[#999]'}`}>PDF only, max 5MB</p>
+          <p className={`text-xs ${isDark ? 'text-[#4A4A4A]' : 'text-[#999]'}`}>PDF, DOC, DOCX, max 5MB</p>
           <label className="mt-4 inline-block cursor-pointer">
             <span className="btn-metal text-xs px-4 py-2 rounded-lg">Browse files</span>
             <input
               type="file"
-              accept=".pdf"
+              accept=".pdf,.doc,.docx"
               className="hidden"
-              onChange={(e) => setFile(e.target.files[0])}
+              onChange={(e) => {
+                const f = e.target.files[0];
+                if (f) setFile(f);
+              }}
             />
           </label>
         </>
