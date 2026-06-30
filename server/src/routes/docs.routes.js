@@ -9,5 +9,6 @@ router.use(firebaseAuth);
 
 router.get('/links', getLinks);
 router.get('/tutorial/:topic', getTutorial);
+router.get('/:topic', getTutorial);
 
 export default router;

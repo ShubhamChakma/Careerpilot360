@@ -1,3 +1,6 @@
+import { chatCompletion } from './groq.service.js';
+import { db } from '../config/firebase.js';
+
 const OFFICIAL_LINKS = [
   {
     id: "frontend",
@@ -29,24 +32,6 @@ const OFFICIAL_LINKS = [
   }
 ];
 
-const TOPIC_TUTORIALS = {
-  react: {
-    title: "React Fundamentals",
-    content: "React is a component-based UI library. Key elements include component composition, declarative UI rendering, states (via useState), and side-effects (via useEffect). Use pure component functions and handle props flow from parent to child.",
-    resources: ["https://react.dev/learn"]
-  },
-  node: {
-    title: "Node.js Event Loop",
-    content: "Node.js runs single-threaded, using non-blocking asynchronous calls. The event loop prioritizes callbacks from the Call Stack, executing Microtasks (Promises) before Macrotasks (timers like setTimeout). Do not block the main thread with heavy synchronous computations.",
-    resources: ["https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"]
-  },
-  redis: {
-    title: "Redis Caching Strategies",
-    content: "Redis stores key-value pairs in memory for sub-millisecond retrieval. Common patterns include Cache-Aside (checking cache first, then querying DB and updating cache) and setting short Expiring Times (TTL) to keep data fresh and limit memory exhaustion.",
-    resources: ["https://redis.io/docs/develop/data-types/"]
-  }
-};
-
 /**
  * Returns structured list of official doc links.
  */
@@ -55,17 +40,104 @@ export async function getOfficialLinks() {
 }
 
 /**
- * Returns content page for a documentation topic.
- * @param {string} topic - Topic ID
+ * Returns content page for a documentation topic, generating dynamically if not cached.
+ * @param {string} topic - Topic ID slug
  */
 export async function getTutorialByTopic(topic) {
-  const t = topic?.toLowerCase();
-  if (TOPIC_TUTORIALS[t]) {
-    return TOPIC_TUTORIALS[t];
+  const t = topic?.toLowerCase().trim();
+  if (!t) {
+    throw new Error('Topic query is empty');
   }
-  return {
-    title: `${topic.charAt(0).toUpperCase() + topic.slice(1)} Tutorial`,
-    content: `Learn all about ${topic} development, best practices, and integration strategies. Detailed guide is being generated...`,
-    resources: []
-  };
+
+  // 1. Check cache database
+  try {
+    const docRef = db.collection('tutorials_cache').doc(t);
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
+      console.log(`[DocsHub Cache] Hit for: ${t}`);
+      return docSnap.data();
+    }
+  } catch (dbErr) {
+    console.warn(`[DocsHub Cache] Read failure (ignoring):`, dbErr.message);
+  }
+
+  // 2. Cache miss -> Call live Groq Cloud API
+  console.log(`[DocsHub Cache] Miss for: ${t}. Invoking Groq dynamic compiler...`);
+
+  const prompt = `You are a Principal Software Engineer, Algorithm Researcher, and Coding Coach.
+Write a comprehensive, extremely detailed, and high-quality study guide for the technical topic: "${topic}".
+The target audience consists of candidates preparing for Online Assessments (OA) and FAANG coding interviews.
+
+Your guide must be formatted in clean, professional Markdown and strictly cover the following sections in detail:
+
+## Concept Overview
+Explain the core concept in clear, simple terms.
+
+## Core Theory
+Deep dive into the underlying mechanics, structures, architectures, or designs.
+
+## Important Formulas & Rules
+If applicable (e.g. tree node counts, complexity properties, subnet calculation, recursion limits). If not applicable, explicitly state "Not applicable to this topic".
+
+## Time & Space Complexity
+Provide a structured Big-O analysis of core operations, best/average/worst case.
+
+## OA Coding Patterns
+Describe 2 common problem-solving patterns or formats frequently seen in Online Assessments (e.g. hash counters, recursion pruning, slow/fast pointers).
+
+## Common Interview Questions with Answers
+Provide 3 actual technical interview questions with brief, detailed answers.
+
+## Frequently Asked Company Questions
+List companies (e.g. Google, Meta, Amazon) known for asking this and in what typical contexts.
+
+## Step-by-Step Approach
+Provide a standard, logical workflow to tackle problems involving this topic.
+
+## Common Mistakes
+Highlight traps, bugs, or edge cases that candidates fall into.
+
+## Optimized Solutions
+Discuss structural code design and memory optimizations (e.g. inplace arrays, bitmasks, space reuse).
+
+## Tips & Tricks
+ optimization shortcuts or cheat sheet takeaways.
+
+## Revision Notes
+Provide a bulleted list of 5 essential facts candidates should revise 10 minutes before the interview.
+
+## Practice Problems
+List 3 mock problem challenges:
+1. [Easy] Title and brief description.
+2. [Medium] Title and brief description.
+3. [Hard] Title and brief description.
+
+## Recommended LeetCode Questions
+List 3-5 specific LeetCode problem titles and IDs (e.g. "Two Sum - #1").
+
+Ensure that code blocks have proper syntax tags (e.g. \`\`\`cpp or \`\`\`javascript). Be thorough and write complete guides with no placeholders.`;
+
+  try {
+    const aiContent = await chatCompletion([
+      { role: 'system', content: 'You are a professional computer science compiler.' },
+      { role: 'user', content: prompt }
+    ]);
+
+    const cleanTitle = topic.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const result = {
+      title: cleanTitle,
+      content: aiContent,
+      createdAt: new Date().toISOString()
+    };
+
+    // Store in cache database asynchronously
+    db.collection('tutorials_cache').doc(t).set(result)
+      .then(() => console.log(`[DocsHub Cache] Saved entry for: ${t}`))
+      .catch((saveErr) => console.warn(`[DocsHub Cache] Write failure:`, saveErr.message));
+
+    return result;
+  } catch (err) {
+    console.error(`[DocsHub] Groq compilation failed for: ${t}:`, err.message);
+    throw err;
+  }
 }
