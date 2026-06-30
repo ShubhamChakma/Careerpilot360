@@ -21,12 +21,20 @@ export async function chat(req, res, next) {
       });
     }
 
-    const reply = await chatCompletion(messages);
+    const sanitizedMessages = messages.map(m => ({
+      role: m.role,
+      content: m.content
+    }));
+
+    const reply = await chatCompletion(sanitizedMessages);
     res.json({
       success: true,
       data: {
-        reply
-      }
+        reply,
+        content: reply
+      },
+      content: reply,
+      reply: reply
     });
   } catch (error) {
     next(error);
