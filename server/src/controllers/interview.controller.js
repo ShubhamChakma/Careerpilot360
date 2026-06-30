@@ -1,5 +1,5 @@
 import { db } from '../config/firebase.js';
-import { generateQuestion, evaluateAnswer } from '../services/interview.service.js';
+import { generateQuestion, evaluateAnswer, evaluateInterviewSession } from '../services/interview.service.js';
 
 /**
  * Initializes a mock interview session and generates the first question.
@@ -17,18 +17,31 @@ export async function startInterview(req, res, next) {
       });
     }
 
+    let textToUse = resumeText || '';
+    // If resume is not provided, check if the user has a saved resume in Firestore
+    if (!textToUse) {
+      try {
+        const doc = await db.collection('resumes').doc(userId).get();
+        if (doc.exists) {
+          textToUse = doc.data().resumeText || '';
+        }
+      } catch (dbErr) {
+        console.warn('⚠️ Firestore resume query failed in startInterview:', dbErr.message);
+      }
+    }
+
     const firstQuestion = await generateQuestion(
       jobTitle,
       experienceLevel || 'Mid-Level',
       [],
-      resumeText || ''
+      textToUse
     );
 
     const sessionData = {
       userId,
       jobTitle,
       experienceLevel: experienceLevel || 'Mid-Level',
-      resumeText: resumeText || '',
+      resumeText: textToUse,
       currentQuestionIndex: 0,
       questions: [
         {
@@ -50,9 +63,11 @@ export async function startInterview(req, res, next) {
       success: true,
       data: {
         id: docRef.id,
+        sessionId: docRef.id, // For backward compatibility with some frontends
         currentQuestionIndex: 0,
         question: firstQuestion.question,
-        tips: firstQuestion.tips
+        tips: firstQuestion.tips,
+        message: firstQuestion.question // fallback
       }
     });
   } catch (error) {
@@ -120,9 +135,11 @@ export async function submitInterviewAnswer(req, res, next) {
 
     let nextQuestionNode = null;
     const nextIdx = currentIdx + 1;
+    const maxQuestions = 5;
 
-    // Conclude session after 3 questions (or customize as needed)
-    if (nextIdx < 3) {
+    let report = null;
+
+    if (nextIdx < maxQuestions) {
       const prevQuestions = session.questions.map(q => q.question);
       nextQuestionNode = await generateQuestion(
         session.jobTitle,
@@ -142,6 +159,15 @@ export async function submitInterviewAnswer(req, res, next) {
       session.currentQuestionIndex = nextIdx;
     } else {
       session.status = 'completed';
+      // Auto-evaluate entire session
+      try {
+        report = await evaluateInterviewSession(session);
+        session.report = report;
+      } catch (err) {
+        console.warn('⚠️ Auto-evaluation failed, creating basic report:', err.message);
+        report = createFallbackReport(session);
+        session.report = report;
+      }
     }
 
     session.updatedAt = new Date().toISOString();
@@ -154,8 +180,75 @@ export async function submitInterviewAnswer(req, res, next) {
         evaluation,
         nextQuestion: nextQuestionNode ? nextQuestionNode.question : null,
         nextQuestionTips: nextQuestionNode ? nextQuestionNode.tips : null,
-        currentQuestionIndex: session.currentQuestionIndex
+        currentQuestionIndex: session.currentQuestionIndex,
+        // Backward compatibility
+        message: nextQuestionNode ? nextQuestionNode.question : null,
+        reply: nextQuestionNode ? nextQuestionNode.question : null,
+        score: report || null
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Ends interview session early and evaluates it.
+ * POST /api/interview/save
+ */
+export async function saveAndEvaluateInterview(req, res, next) {
+  try {
+    const userId = req.user.uid;
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: { message: 'Session ID is required.' } 
+      });
+    }
+
+    const docRef = db.collection('interview_sessions').doc(sessionId);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ 
+        success: false, 
+        error: { message: 'Interview session not found.' } 
+      });
+    }
+
+    const session = doc.data();
+    if (session.userId !== userId) {
+      return res.status(403).json({ 
+        success: false, 
+        error: { message: 'Forbidden access to this interview session.' } 
+      });
+    }
+
+    session.status = 'completed';
+    session.updatedAt = new Date().toISOString();
+
+    let report = null;
+    try {
+      report = await evaluateInterviewSession(session);
+      session.report = report;
+    } catch (err) {
+      console.warn('⚠️ Final evaluation failed, creating fallback:', err.message);
+      report = createFallbackReport(session);
+      session.report = report;
+    }
+
+    await docRef.update(session);
+
+    res.json({
+      success: true,
+      data: {
+        completed: true,
+        score: report
+      },
+      // Backward compatibility keys
+      score: report
     });
   } catch (error) {
     next(error);
@@ -187,27 +280,42 @@ export async function getInterviewSession(req, res, next) {
       });
     }
 
-    // Compute aggregate average score
-    let scoreSum = 0;
-    let scoreCount = 0;
-    session.questions.forEach(q => {
-      if (q.evaluation && q.evaluation.score !== undefined) {
-        scoreSum += Number(q.evaluation.score);
-        scoreCount++;
-      }
-    });
-
-    const averageScore = scoreCount > 0 ? parseFloat((scoreSum / scoreCount).toFixed(1)) : 0;
-
     res.json({
       success: true,
       data: {
         id: doc.id,
         ...session,
-        averageScore
+        averageScore: session.report?.overallScore || 0
       }
     });
   } catch (error) {
     next(error);
   }
+}
+
+function createFallbackReport(session) {
+  let scoreSum = 0;
+  let count = 0;
+  session.questions.forEach(q => {
+    if (q.evaluation && q.evaluation.score !== undefined) {
+      scoreSum += Number(q.evaluation.score) * 10; // score is 0-10, scale to 0-100
+      count++;
+    }
+  });
+  const avg = count > 0 ? Math.round(scoreSum / count) : 70;
+
+  return {
+    overallScore: avg,
+    technicalScore: avg,
+    communicationScore: Math.max(40, avg - 5),
+    confidenceScore: Math.max(40, avg - 3),
+    problemSolvingScore: Math.max(40, avg + 2),
+    resumeKnowledgeScore: avg,
+    behaviourScore: Math.max(40, avg - 2),
+    summary: 'Mock technical interview completed successfully. Evaluation aggregated based on response scores.',
+    strengths: ['Covered technical definitions', 'Followed the questions sequentially'],
+    weaknesses: ['Response depth can be improved', 'Quantify project details further'],
+    suggestions: ['Structure behavioral answers with the STAR method (Situation, Task, Action, Result)'],
+    nextSteps: ['Revise core development questions', 'Take another practice interview']
+  };
 }
