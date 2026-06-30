@@ -7,21 +7,33 @@ import ScoreReport from './ScoreReport';
 
 export default function ScannerPage() {
   const { isDark } = useThemeStore();
-  const { scanResume, atsResult, loading, error, fetchResume } = useResume();
+  const { scanResume, atsResult, loading, error, fetchResume, resume } = useResume();
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [jobDescription, setJobDescription] = useState('');
+  const [useExisting, setUseExisting] = useState(false);
 
   useEffect(() => {
     fetchResume();
   }, [fetchResume]);
 
+  useEffect(() => {
+    if (resume && (resume.fileName || resume.resumeText)) {
+      setUseExisting(true);
+    }
+  }, [resume]);
+
   const handleScan = async () => {
-    if (!file || !jobDescription.trim()) return;
-    await scanResume(file, jobDescription);
+    if (!useExisting && !file) return;
+    if (!jobDescription.trim()) return;
+    try {
+      await scanResume(useExisting ? null : file, jobDescription, useExisting);
+    } catch (err) {
+      console.error('Scan failed:', err);
+    }
   };
 
-  const canScan = file && jobDescription.trim().length > 0;
+  const canScan = (useExisting || file) && jobDescription.trim().length > 0;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -29,19 +41,49 @@ export default function ScannerPage() {
         <h1 className={`font-display font-bold text-3xl ${isDark ? 'text-[#E8E8E8]' : 'text-[#1A1A1A]'}`}>
           ATS Scanner
         </h1>
-        <p className={`text-sm mt-1 ${isDark ? 'text-[#4A4A4A]' : 'text-[#999]'}`}>
+        <p className={`text-sm mt-1 ${isDark ? 'text-[#888]' : 'text-[#666]'}`}>
           Score your resume against a job description across ATS parameters before you apply
         </p>
       </div>
 
-      {/* Upload zone */}
-      <ResumeUploader
-        file={file}
-        setFile={setFile}
-        dragging={dragging}
-        setDragging={setDragging}
-        isDark={isDark}
-      />
+      {/* Existing Resume Detection Banner */}
+      {resume && (resume.fileName || resume.resumeText) && (
+        <div className={`p-4 rounded-xl mb-6 border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+          isDark ? 'bg-[#111] border-[#2A2A2A] text-[#E8E8E8]' : 'bg-white border-[#E0E0E0] text-[#1A1A1A]'
+        }`}>
+          <div className="flex items-center gap-3">
+            <span className="text-xl">📄</span>
+            <div>
+              <p className="text-sm font-semibold">Active Resume: {resume.fileName || 'Uploaded Resume'}</p>
+              <p className={`text-xs ${isDark ? 'text-[#6B6B6B]' : 'text-[#999]'}`}>
+                Parsed on {resume.createdAt ? new Date(resume.createdAt).toLocaleDateString() : 'N/A'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold">
+              <input
+                type="checkbox"
+                checked={useExisting}
+                onChange={(e) => setUseExisting(e.target.checked)}
+                className="rounded border-[#2A2A2A] text-zinc-900 bg-zinc-900 focus:ring-zinc-800"
+              />
+              Use Existing Resume
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Upload zone (only if NOT using existing) */}
+      {!useExisting && (
+        <ResumeUploader
+          file={file}
+          setFile={setFile}
+          dragging={dragging}
+          setDragging={setDragging}
+          isDark={isDark}
+        />
+      )}
 
       {/* Job Description input */}
       <div className="mb-6">
@@ -65,23 +107,38 @@ export default function ScannerPage() {
         />
       </div>
 
-      {/* Error display */}
+      {/* Error display with Retry option */}
       {error && (
-        <p className="text-red-400 text-sm mb-4">{error}</p>
+        <div className="p-4 rounded-xl mb-4 bg-red-950/20 border border-red-900/30 flex items-center justify-between gap-4">
+          <p className="text-red-400 text-sm">{error}</p>
+          <Button size="xs" variant="secondary" onClick={handleScan}>Retry Scan</Button>
+        </div>
       )}
 
       <Button
         onClick={handleScan}
-        disabled={!canScan}
+        disabled={!canScan || loading}
         loading={loading}
-        className="mb-10"
+        className="mb-10 w-full sm:w-auto"
       >
-        Scan Resume
+        {loading ? 'Evaluating Resume...' : 'Scan Resume'}
       </Button>
 
+      {/* Skeletons while loading */}
+      {loading && (
+        <div className="space-y-6 animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className={`h-48 rounded-2xl ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-200'}`} />
+            <div className={`h-48 rounded-2xl ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-200'}`} />
+          </div>
+          <div className={`h-32 rounded-2xl ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-200'}`} />
+          <div className={`h-48 rounded-2xl ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-200'}`} />
+        </div>
+      )}
+
       {/* Results */}
-      {atsResult && (
-        <ScoreReport atsData={atsResult} isDark={isDark} />
+      {!loading && atsResult && (
+        <ScoreReport atsData={atsResult} parsedResume={resume?.parsedData} isDark={isDark} />
       )}
     </div>
   );
