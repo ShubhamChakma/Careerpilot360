@@ -29,12 +29,14 @@ export function useJobPredict() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.post('/job-predict');
-      setPrediction(data);
-      if (user?.uid) await saveJobPrediction(user.uid, data);
-      return data;
+      const res = await api.post('/job-predict');
+      const report = res.data?.data || res.data;
+      setPrediction(report);
+      if (user?.uid) await saveJobPrediction(user.uid, report);
+      return report;
     } catch (err) {
-      setError(err.response?.data?.message || 'Prediction failed');
+      const msg = err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Prediction failed';
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
