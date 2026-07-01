@@ -42,7 +42,10 @@ app.use(
       }
 
 
-      if (allowedOrigins.includes(origin)) {
+      const sanitizedAllowed = allowedOrigins.map(o => o.replace(/\/$/, ''));
+      const sanitizedOrigin = origin.replace(/\/$/, '');
+
+      if (sanitizedAllowed.includes(sanitizedOrigin)) {
         return callback(null, true);
       }
 
