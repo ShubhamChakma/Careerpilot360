@@ -14,6 +14,7 @@ import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import OAArenaPage from './pages/OAArena/OAArenaPage';
 import SolvePage from './pages/OAArena/SolvePage';
+import SubmissionsPage from './pages/OAArena/SubmissionsPage';
 import DocsHubPage from './pages/DocsHub/DocsHubPage';
 import DocReader from './pages/DocsHub/DocReader';
 import InterviewRoom from './pages/InterviewStudio/InterviewRoom';
@@ -66,6 +67,7 @@ export default function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/oa-arena" element={<ProtectedRoute><OAArenaPage /></ProtectedRoute>} />
             <Route path="/oa-arena/solve/:id" element={<ProtectedRoute><SolvePage /></ProtectedRoute>} />
+            <Route path="/oa-arena/submissions" element={<ProtectedRoute><SubmissionsPage /></ProtectedRoute>} />
             <Route path="/docs" element={<ProtectedRoute><DocsHubPage /></ProtectedRoute>} />
             <Route path="/docs/:slug" element={<ProtectedRoute><DocReader /></ProtectedRoute>} />
             <Route path="/interview" element={<ProtectedRoute><InterviewRoom /></ProtectedRoute>} />

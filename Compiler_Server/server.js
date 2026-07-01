@@ -137,6 +137,7 @@ app.post("/submit", authenticateToken, async (req, res) => {
             verdict: result.verdict,
             passed: result.passed,
             total: result.total,
+            language: lang,
         }).then(() => {
             console.log(`💾 [Submit Route] Submission saved successfully.`);
         }).catch((err) =>

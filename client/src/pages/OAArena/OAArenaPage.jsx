@@ -22,9 +22,24 @@ export default function OAArenaPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="mb-8">
-        <h1 className={`font-display font-bold text-3xl ${isDark ? 'text-[#E8E8E8]' : 'text-[#1A1A1A]'}`}>OA Arena</h1>
-        <p className={`text-sm mt-1 ${isDark ? 'text-[#4A4A4A]' : 'text-[#999]'}`}>Practice problems with real test-case evaluation</p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className={`font-display font-bold text-3xl ${isDark ? 'text-[#E8E8E8]' : 'text-[#1A1A1A]'}`}>OA Arena</h1>
+          <p className={`text-sm mt-1 ${isDark ? 'text-[#4A4A4A]' : 'text-[#999]'}`}>Practice problems with real test-case evaluation</p>
+        </div>
+        <Link
+          to="/oa-arena/submissions"
+          className={`flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl border font-semibold transition-all ${
+            isDark
+              ? 'border-[#2A2A2A] text-[#C0C0C0] hover:border-violet-500/40 hover:bg-violet-500/5 hover:text-violet-400'
+              : 'border-slate-300 text-slate-600 hover:border-violet-400/50 hover:bg-violet-50 hover:text-violet-600'
+          }`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+          My Submissions
+        </Link>
       </div>
 
       {/* Filters */}

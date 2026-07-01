@@ -16,7 +16,7 @@ const { db } = require("./firebaseAdmin");
  *
  * Returns the new document ID.
  */
-async function saveSubmission({ userId, problemId, verdict, passed, total }) {
+async function saveSubmission({ userId, problemId, verdict, passed, total, language }) {
     const { FieldValue } = require("firebase-admin/firestore");
 
     const docRef = await db.collection("submissions").add({
@@ -25,6 +25,7 @@ async function saveSubmission({ userId, problemId, verdict, passed, total }) {
         verdict,
         passed,
         total,
+        language: language || null,
         submittedAt: FieldValue.serverTimestamp(),
     });
 

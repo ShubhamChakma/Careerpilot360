@@ -13,6 +13,7 @@ import docsRoutes from './routes/docs.routes.js';
 import interviewRoutes from './routes/interview.routes.js';
 import jobPredictRoutes from './routes/jobPredict.routes.js';
 import resumeRoutes from './routes/resume.routes.js';
+import submissionsRoutes from './routes/submissions.routes.js';
 
 
 const app = express();
@@ -136,6 +137,8 @@ app.use('/api/interview', interviewRoutes);
 app.use('/api/job-predict', jobPredictRoutes);
 
 app.use('/api/resume', resumeRoutes);
+
+app.use('/api/submissions', submissionsRoutes);
 
 
 

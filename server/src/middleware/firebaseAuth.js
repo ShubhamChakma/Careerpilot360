@@ -2,6 +2,7 @@ import { auth } from '../config/firebase.js';
 import env from '../config/env.js';
 
 export default async function firebaseAuth(req, res, next) {
+  console.log(`🔑 [Auth Middleware] path: ${req.method} ${req.path}, auth header: ${req.headers.authorization ? req.headers.authorization.substring(0, 15) + '...' : 'none'}`);
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
