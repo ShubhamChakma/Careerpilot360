@@ -13,7 +13,7 @@ const fs   = require("fs");
 if (!getApps().length) {
     let sa;
 
-    // Prefer inline JSON env var (required on Railway/Render/cloud platforms)
+    // 1️⃣  Full JSON blob env var (set FIREBASE_SERVICE_ACCOUNT_JSON on Render)
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
         try {
             sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
@@ -22,14 +22,27 @@ if (!getApps().length) {
             console.error("[Firebase] Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON:", err.message);
             process.exit(1);
         }
+
+    // 2️⃣  Individual env vars — easiest option for Render / Vercel / Railway
+    } else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+        sa = {
+            type: "service_account",
+            project_id:   process.env.FIREBASE_PROJECT_ID,
+            client_email: process.env.FIREBASE_CLIENT_EMAIL,
+            // Render stores \n literally — convert back to real newlines
+            private_key:  process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+        };
+        console.log(`[Firebase] Loaded credentials from individual env vars (project: ${sa.project_id})`);
+
+    // 3️⃣  Local JSON file fallback (development only)
     } else {
-        // Fall back to file path (used locally)
         const saPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
-            || "./firebase-service-account.json";
+            || "../careerpilot-9cac6-firebase-adminsdk-fbsvc-e6d708f22a.json";
         const resolved = path.resolve(process.cwd(), saPath);
 
         if (!fs.existsSync(resolved)) {
             console.error(`[Firebase] service account not found at ${resolved}`);
+            console.error("[Firebase] On Render/production, set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY env vars.");
             process.exit(1);
         }
 
