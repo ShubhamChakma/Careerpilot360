@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useThemeStore } from '../store/themeStore';
 import { Link } from 'react-router-dom';
+import api from '../lib/api';
 
 export default function Feedback() {
   const { isDark } = useThemeStore();
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -15,6 +17,7 @@ export default function Feedback() {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
+    setSubmitError('');
   };
 
   const validate = () => {
@@ -29,7 +32,7 @@ export default function Feedback() {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
@@ -38,12 +41,21 @@ export default function Feedback() {
     }
 
     setLoading(true);
-    // Simulate API submission
-    setTimeout(() => {
-      setLoading(false);
+    setSubmitError('');
+    try {
+      await api.post('/feedback', formData);
       setSubmitted(true);
       setFormData({ name: '', email: '', message: '' });
-    }, 1200);
+    } catch (err) {
+      console.error('Failed to submit feedback:', err);
+      setSubmitError(
+        err.response?.data?.error?.message || 
+        err.response?.data?.message || 
+        'Something went wrong. Please try again later.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -161,6 +173,12 @@ export default function Feedback() {
                 />
                 {errors.message && <p className="text-red-500 text-xs mt-1.5">{errors.message}</p>}
               </div>
+
+              {submitError && (
+                <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs">
+                  {submitError}
+                </div>
+              )}
 
               <button
                 type="submit"

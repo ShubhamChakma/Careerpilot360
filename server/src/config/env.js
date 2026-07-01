@@ -15,6 +15,13 @@ const env = {
   GROQ_API_KEY: process.env.GROQ_API_KEY,
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
   COMPILER_SERVER_URL: process.env.COMPILER_SERVER_URL || 'http://localhost:3000',
+  SMTP: {
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+  FEEDBACK_RECIPIENT: process.env.FEEDBACK_RECIPIENT || 'shubhamchakma150905@gmail.com',
 };
 
 const isDev = env.NODE_ENV === 'development';
@@ -34,6 +41,10 @@ if (!env.FIREBASE.projectId || !env.FIREBASE.clientEmail || !env.FIREBASE.privat
   } else {
     console.error('❌ ERROR: Firebase credentials are required in production.');
   }
+}
+
+if (!env.SMTP.user || !env.SMTP.pass) {
+  console.warn('⚠️ WARNING: SMTP credentials (SMTP_USER/SMTP_PASS) are not defined. Feedback emails will be SIMULATED (logged to console).');
 }
 
 export default env;
