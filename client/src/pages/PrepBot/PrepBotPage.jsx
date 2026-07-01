@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useThemeStore } from '../../store/themeStore';
 import { useChat } from '../../hooks/useChat';
 import ChatWindow from '../../components/chat/ChatWindow';
@@ -20,8 +20,6 @@ export default function PrepBotPage() {
     createNewSession
   } = useChat(activeSessionId);
 
-  const bottomRef = useRef(null);
-
   const loadSessions = async () => {
     try {
       const res = await api.get('/chat-sessions');
@@ -38,10 +36,6 @@ export default function PrepBotPage() {
   useEffect(() => {
     loadSessions();
   }, []);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   const handleNewSession = async () => {
     try {
@@ -145,7 +139,6 @@ export default function PrepBotPage() {
         }`}>
           <div className="flex-1 overflow-hidden">
             <ChatWindow messages={messages} loading={loading} isDark={isDark} />
-            <div ref={bottomRef} />
           </div>
 
           {/* Error Banner with Retry button */}
