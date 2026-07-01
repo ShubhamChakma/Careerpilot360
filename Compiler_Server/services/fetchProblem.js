@@ -24,18 +24,20 @@ async function fetchProblem(problemId) {
     }
 
     const data = testcasesSnap.data();
-    const hiddenTestCases = data.hiddenTestCases;
+    const sample = data.sampleTestCases || [];
+    const hidden = data.hiddenTestCases || [];
+    const allCases = [...sample, ...hidden];
 
-    if (!Array.isArray(hiddenTestCases) || hiddenTestCases.length === 0) {
+    if (allCases.length === 0) {
         throw new Error(
-            `hiddenTestCases is empty or missing for problemId: "${problemId}"`
+            `No test cases found (sample + hidden) for problemId: "${problemId}"`
         );
     }
 
-    const testCases = hiddenTestCases.map((tc, i) => {
+    const testCases = allCases.map((tc, i) => {
         if (tc.input === undefined || tc.output === undefined) {
             throw new Error(
-                `hiddenTestCases[${i}] for "${problemId}" is missing input or output`
+                `testCases[${i}] for "${problemId}" is missing input or output`
             );
         }
         return {

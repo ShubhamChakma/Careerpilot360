@@ -5,12 +5,30 @@ export default [
     'arrays',
     0,
     'Two Sum',
-    'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.',
+    `Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice.
+
+Input Format
+First line contains N and Target space-separated
+Second line contains N space-separated integers representing the array
+
+Output Format
+Print the 0-based indices of the two numbers separated by space`,
     [
-      { input: '4\n2 7 11 15\n9', expectedOutput: '0 1', explanation: 'nums[0] + nums[1] = 9' },
-      { input: '3\n3 2 4\n6', expectedOutput: '1 2', explanation: 'nums[1] + nums[2] = 6' },
+      { input: "4 9\n[2, 7, 11, 15]", expectedOutput: "0 1", explanation: "Because nums[0] + nums[1] == 2 + 7 == 9, we return 0 1." },
+      { input: "3 6\n[3, 2, 4]", expectedOutput: "1 2", explanation: "Because nums[1] + nums[2] == 2 + 4 == 6, we return 1 2." }
     ],
-    defaultHidden('4\n2 7 11 15\n9', '0 1')
+    [
+      // 3 extra visible test cases
+      { input: "3 6\n3 3 0", expectedOutput: "0 1" },
+      { input: "4 10\n1 5 5 9", expectedOutput: "1 2" },
+      { input: "5 0\n-3 4 3 90 1", expectedOutput: "0 2" },
+      // 5 hidden test cases
+      { input: "2 6\n3 3", expectedOutput: "0 1" },
+      { input: "3 5\n1 2 3", expectedOutput: "1 2" },
+      { input: "5 8\n1 2 3 4 5", expectedOutput: "2 4" },
+      { input: "4 8\n2 4 6 8", expectedOutput: "0 2" },
+      { input: "6 12\n1 2 3 4 5 7", expectedOutput: "4 5" }
+    ]
   ),
   makeQuestion(
     'arrays',
@@ -48,13 +66,31 @@ export default [
   makeQuestion(
     'arrays',
     4,
-    'Maximum Subarray',
-    'Find the contiguous subarray with the largest sum (Kadane).',
+    'Maximum Subarray Sum',
+    `Given an array of N integers, find the maximum possible sum of a contiguous subarray.
+
+Input Format
+First line contains N
+Second line contains N space-separated integers
+
+Output Format
+Print the maximum subarray sum`,
     [
-      { input: '9\n-2 1 -3 4 -1 2 1 -5 4', expectedOutput: '6', explanation: '[4,-1,2,1]' },
-      { input: '1\n1', expectedOutput: '1', explanation: 'Single element' },
+      { input: "5\n[1, 2, 3, -2, 5]", expectedOutput: "9", explanation: "The subarray [1, 2, 3, -2, 5] has sum 9, which is the maximum. Kadane's algorithm picks all elements since the total is optimal." },
+      { input: "4\n[-2, -3, -1, -4]", expectedOutput: "-1", explanation: "All elements are negative. The maximum subarray sum is the least-negative element, which is -1 (single element subarray)." }
     ],
-    defaultHidden('9\n-2 1 -3 4 -1 2 1 -5 4', '6')
+    [
+      // 3 extra visible test cases
+      { input: "5\n1 -1 5 -2 3", expectedOutput: "6" },
+      { input: "3\n-2 -3 -1", expectedOutput: "-1" },
+      { input: "6\n-2 1 -3 4 -1 2 1 -5 4", expectedOutput: "6" },
+      // 5 hidden test cases
+      { input: "8\n-2 -3 4 -1 -2 1 5 -3", expectedOutput: "7" },
+      { input: "5\n5 4 -1 7 8", expectedOutput: "23" },
+      { input: "4\n-1 -2 -3 -4", expectedOutput: "-1" },
+      { input: "1\n100", expectedOutput: "100" },
+      { input: "7\n3 -2 2 -3 4 -1 2 -1", expectedOutput: "5" }
+    ]
   ),
   makeQuestion(
     'arrays',

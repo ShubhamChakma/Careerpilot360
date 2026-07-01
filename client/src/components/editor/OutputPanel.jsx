@@ -42,6 +42,8 @@ export default function OutputPanel({ output, loading, error, isDark, height, se
   const results = output?.results || [];
   const selectedCase = results[selectedCaseIdx];
 
+  const allPassed = output?.success || output?.allPassed || output?.verdict === 'Accepted' || output?.verdict === 'All Samples Passed';
+
   // Visual classes based on theme
   const bgClass = isDark ? 'bg-[#0A0A0A]' : 'bg-[#FAFAFA]';
   const borderClass = isDark ? 'border-[#1E1E1E]' : 'border-[#E2E8F0]';
@@ -117,8 +119,8 @@ export default function OutputPanel({ output, loading, error, isDark, height, se
           ) : error ? (
             <span className="text-red-500">Execution Error</span>
           ) : output ? (
-            <span className={output.allPassed ? 'text-emerald-500' : 'text-amber-500'}>
-              {output.allPassed ? 'Passed' : 'Failed'}
+            <span className={allPassed ? 'text-emerald-500' : 'text-amber-500'}>
+              {allPassed ? 'Passed' : 'Failed'}
             </span>
           ) : (
             <span className={textMutedClass}>Idle</span>
@@ -242,7 +244,7 @@ export default function OutputPanel({ output, loading, error, isDark, height, se
         ) : activeTab === 'verdict' && output ? (
           // Verdict Dashboard (Submission Results)
           <div className="flex flex-col items-center justify-center py-6 px-4 h-full text-center">
-            {output.allPassed ? (
+            {allPassed ? (
               <div className="space-y-4">
                 <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
                   <span className="text-3xl text-emerald-500">✓</span>

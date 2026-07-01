@@ -39,7 +39,7 @@ export function useCodeRunner() {
             const res = await api.get(`/compile/${jobId}`);
             if (res.data.status === 'completed') {
               cleanPoll();
-              setOutput(res.data);
+              setOutput({ ...res.data, mode });
               setLoading(false);
             } else if (res.data.status === 'failed') {
               cleanPoll();
@@ -53,7 +53,7 @@ export function useCodeRunner() {
           }
         }, 1000);
       } else {
-        setOutput(data);
+        setOutput({ ...data, mode });
       }
     } catch (err) {
       const msg = err.response?.data?.error?.message

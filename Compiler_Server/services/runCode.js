@@ -33,6 +33,14 @@ function runCode(command, args, language, input, timeLimit = 2000) {
         childEnv[pathKey] = pathsToPrepend.join(path.delimiter) + path.delimiter + pathVal;
     }
 
+    // Clean up input to make it friendly for standard space-separated parsing
+    const cleanedInput = String(input)
+        .replace(/[\[\]]/g, "")
+        .replace(/,/g, " ")
+        .split("\n")
+        .map(line => line.replace(/[ \t]+/g, " ").trim())
+        .join("\n");
+
     return new Promise((resolve) => {
         let runProcess;
         try {
@@ -78,8 +86,8 @@ function runCode(command, args, language, input, timeLimit = 2000) {
         });
 
         try {
-            console.log(`🏃 [runCode] Writing ${input.length} chars to stdin...`);
-            runProcess.stdin.write(input);
+            console.log(`🏃 [runCode] Writing ${cleanedInput.length} chars to stdin...`);
+            runProcess.stdin.write(cleanedInput);
             runProcess.stdin.end();
         } catch (err) {
             console.error(`🏃 [runCode] Error writing to process stdin:`, err);

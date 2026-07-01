@@ -19,8 +19,18 @@ export default function SolvePage() {
   const [cursor, setCursor] = useState({ line: 1, col: 1 });
   const [outputHeight, setOutputHeight] = useState(240);
   const [elapsedTime, setElapsedTime] = useState(null);
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
 
   const startTimeRef = useRef(null);
+
+  useEffect(() => {
+    if (output && output.mode === 'submit') {
+      const isAccepted = output.success || output.allPassed || output.verdict === 'Accepted';
+      if (isAccepted) {
+        setShowSuccessOverlay(true);
+      }
+    }
+  }, [output]);
 
   // Maintain separate code content per language so user edits aren't lost on switch
   const [editorCodes, setEditorCodes] = useState(() => {
@@ -91,6 +101,119 @@ export default function SolvePage() {
   const borderClass = isDark ? 'border-[#1E1E1E]' : 'border-[#E2E8F0]';
   const textTitleClass = isDark ? 'text-white' : 'text-[#0F172A]';
 
+  if (showSuccessOverlay) {
+    return (
+      <div className={`flex flex-col items-center justify-center min-h-[calc(100vh-64px)] ${pageBg} px-4 relative overflow-hidden`}>
+        {/* Animated Background Glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+        {/* Floating Confetti Particle System */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {Array.from({ length: 25 }).map((_, idx) => {
+            const randomLeft = Math.random() * 100;
+            const randomDelay = Math.random() * 4;
+            const randomDuration = 4 + Math.random() * 4;
+            const randomSize = 6 + Math.random() * 8;
+            const colors = ['#10B981', '#3B82F6', '#F59E0B', '#EC4899', '#8B5CF6'];
+            const color = colors[idx % colors.length];
+            return (
+              <div
+                key={idx}
+                className="absolute animate-bounce opacity-30"
+                style={{
+                  left: `${randomLeft}%`,
+                  top: `-20px`,
+                  width: `${randomSize}px`,
+                  height: `${randomSize}px`,
+                  backgroundColor: color,
+                  borderRadius: idx % 3 === 0 ? '50%' : idx % 3 === 1 ? '4px' : '0px',
+                  animationName: 'fall-and-drift',
+                  animationDuration: `${randomDuration}s`,
+                  animationTimingFunction: 'linear',
+                  animationIterationCount: 'infinite',
+                  animationDelay: `${randomDelay}s`,
+                }}
+              />
+            );
+          })}
+        </div>
+
+        <style>{`
+          @keyframes fall-and-drift {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+          }
+        `}</style>
+
+        {/* Card */}
+        <div className={`max-w-md w-full rounded-3xl border p-8 space-y-6 text-center shadow-2xl relative z-10 backdrop-blur-xl ${
+          isDark ? 'bg-[#0E0E0E]/90 border-[#222]' : 'bg-white/90 border-slate-200'
+        }`}>
+          {/* Animated Green Check Badge */}
+          <div className="relative w-24 h-24 mx-auto mb-4 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full bg-emerald-500/10 animate-ping" />
+            <div className="absolute -inset-2 rounded-full bg-emerald-500/5 animate-pulse" />
+            <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+              <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h1 className={`font-display font-extrabold text-3xl tracking-tight ${textTitleClass}`}>
+              Accepted!
+            </h1>
+            <p className="text-sm text-emerald-400 font-semibold tracking-wider uppercase">
+              All Test Cases Passed Successfully
+            </p>
+            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Your solution is optimal and has been stored in your submission history.
+            </p>
+          </div>
+
+          {/* Solution Stats */}
+          <div className={`grid grid-cols-2 gap-3 p-4 rounded-2xl border text-xs font-mono ${
+            isDark ? 'bg-[#151515] border-[#222]' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <div className="text-left space-y-0.5">
+              <span className="text-gray-500 text-[10px] uppercase font-sans">Question</span>
+              <div className={`font-bold font-sans truncate ${textTitleClass}`}>{question.title}</div>
+            </div>
+            <div className="text-left space-y-0.5">
+              <span className="text-gray-500 text-[10px] uppercase font-sans">Language</span>
+              <div className={`font-bold font-sans capitalize ${textTitleClass}`}>{lang}</div>
+            </div>
+            <div className="text-left space-y-0.5 mt-2 border-t pt-2 border-dashed col-span-2 flex justify-between items-center">
+              <span className="text-gray-500 text-[10px] uppercase font-sans">Test Cases</span>
+              <div className="font-bold text-emerald-500 font-sans text-sm">
+                {output?.passed || 10} / {output?.total || 10} Passed
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2 pt-2">
+            <Link to="/oa-arena">
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-3 rounded-xl shadow-lg shadow-emerald-500/20 font-bold transition-all">
+                Return to OA Arena
+              </Button>
+            </Link>
+            <Button
+              variant="secondary"
+              onClick={() => setShowSuccessOverlay(false)}
+              className="text-xs py-3 rounded-xl font-semibold"
+            >
+              Review Code Solution
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex h-[calc(100vh-64px)] overflow-hidden ${pageBg}`}>
       {/* Problem Panel (Left 42%) */}
@@ -113,31 +236,54 @@ export default function SolvePage() {
           </div>
 
           {/* Examples */}
-          {question.examples && question.examples.length > 0 && (
-            <div className="space-y-4">
-              <h3 className={`text-sm font-bold tracking-tight ${textTitleClass}`}>Examples</h3>
-              {question.examples.map((ex, i) => (
+          {(question.examples || question.sampleTestCases) && (
+            <div className="space-y-6">
+              <h3 className={`text-sm font-bold tracking-tight uppercase ${textTitleClass}`}>Sample Test Cases</h3>
+              {(question.examples || question.sampleTestCases).slice(0, 2).map((ex, i) => (
                 <div
                   key={i}
-                  className={`rounded-xl p-4 border text-xs font-mono transition-colors ${
-                    isDark ? 'bg-[#141414] border-[#2A2A2A]' : 'bg-slate-50 border-slate-200/80'
+                  className={`rounded-2xl p-5 border text-xs font-mono transition-all duration-300 shadow-sm ${
+                    isDark 
+                      ? 'bg-[#0E0E0E] border-[#222] hover:border-[#333]' 
+                      : 'bg-white border-slate-200/80 hover:border-slate-300'
                   }`}
                 >
-                  <div className="text-[10px] text-violet-500 font-semibold mb-2 uppercase tracking-wider">
-                    Example {i + 1}
-                  </div>
-                  <div className="space-y-1">
-                    <div>
-                      <span className="text-gray-500">Input:</span>{' '}
-                      <span className={isDark ? 'text-gray-300' : 'text-gray-800'}>{ex.input}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Output:</span>{' '}
-                      <span className={isDark ? 'text-gray-300' : 'text-gray-800'}>{ex.output}</span>
-                    </div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[11px] font-bold text-violet-500 uppercase tracking-wider">
+                      Example {i + 1}
+                    </span>
                     {ex.explanation && (
-                      <div className="mt-2 text-gray-400 italic text-[11px]">
-                        Explanation: {ex.explanation}
+                      <span className="text-[9px] px-2 py-0.5 rounded-full font-sans font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-wider animate-pulse">
+                        has explanation
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-gray-500 font-sans font-semibold mb-1 text-[10px] uppercase tracking-wider">Input</div>
+                      <pre className={`p-3 rounded-lg overflow-x-auto whitespace-pre-wrap ${isDark ? 'bg-[#151515] text-gray-300' : 'bg-slate-50 text-slate-800'}`}>
+                        {ex.input}
+                      </pre>
+                    </div>
+
+                    <div>
+                      <div className="text-gray-500 font-sans font-semibold mb-1 text-[10px] uppercase tracking-wider">Output</div>
+                      <pre className={`p-3 rounded-lg overflow-x-auto whitespace-pre-wrap ${isDark ? 'bg-[#151515] text-gray-300' : 'bg-slate-50 text-slate-800'}`}>
+                        {ex.output || ex.expectedOutput}
+                      </pre>
+                    </div>
+
+                    {ex.explanation && (
+                      <div className={`p-3.5 rounded-lg border leading-relaxed font-sans text-[11px] ${
+                        isDark ? 'bg-[#181510]/30 border-[#4a3e21]/20 text-gray-300' : 'bg-amber-50/50 border-amber-200/60 text-slate-700'
+                      }`}>
+                        <div className="flex items-center gap-1.5 font-bold mb-1 text-[10px] text-amber-500 uppercase tracking-wider">
+                          <span>💡</span> Explanation
+                        </div>
+                        <div className="italic">
+                          {ex.explanation}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -149,7 +295,7 @@ export default function SolvePage() {
           {/* Constraints */}
           {question.constraints && (
             <div className="space-y-2">
-              <h3 className={`text-sm font-bold tracking-tight ${textTitleClass}`}>Constraints</h3>
+              <h3 className={`text-sm font-bold tracking-tight uppercase ${textTitleClass}`}>Constraints</h3>
               <ul className="list-disc list-inside text-xs space-y-1.5 text-gray-400 font-mono">
                 {Array.isArray(question.constraints) ? (
                   question.constraints.map((c, i) => <li key={i}>{c}</li>)

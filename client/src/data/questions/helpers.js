@@ -9,6 +9,11 @@ const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 
 export function makeQuestion(topic, index, title, description, samples, hidden) {
   const slug = title.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+  
+  // Split hidden cases (typically 8) into 3 extra visible/public cases and 5 hidden cases
+  const extraVisible = Array.isArray(hidden) ? hidden.slice(0, 3) : [];
+  const finalHidden = Array.isArray(hidden) ? hidden.slice(3, 8) : [];
+
   return {
     id: slug,
     slug,
@@ -16,10 +21,14 @@ export function makeQuestion(topic, index, title, description, samples, hidden) 
     topic,
     difficulty: DIFFICULTIES[index % 3],
     description,
-    constraints: '1 <= n <= 10^5',
+    constraints: [
+      "1 <= N <= 100000",
+      "-1000000000 <= arr[i] <= 1000000000"
+    ],
     starterCode: { ...STARTER },
-    sampleTestCases: samples,
-    hiddenTestCases: hidden,
+    sampleTestCases: [...(samples || []), ...extraVisible],
+    hiddenTestCases: finalHidden,
+    examples: samples,
   };
 }
 
