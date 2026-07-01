@@ -21,6 +21,7 @@ import InterviewRoom from './pages/InterviewStudio/InterviewRoom';
 import ScannerPage from './pages/ATSScanner/ScannerPage';
 import PrepBotPage from './pages/PrepBot/PrepBotPage';
 import JobPredictPage from './pages/JobPredict/JobPredictPage';
+import Feedback from './pages/Feedback';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuthStore();
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="/ats-scanner" element={<ProtectedRoute><ScannerPage /></ProtectedRoute>} />
             <Route path="/prep-bot" element={<ProtectedRoute><PrepBotPage /></ProtectedRoute>} />
             <Route path="/job-predict" element={<ProtectedRoute><JobPredictPage /></ProtectedRoute>} />
+            <Route path="/feedback" element={<Feedback />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
